@@ -270,6 +270,7 @@ body.sidebar-collapsed .sidebar-scroll {
 .view-button:hover,
 .filter-button:hover,
 .tag-chip:hover,
+.ghost-button.active,
 .note-card:hover,
 .command-result:hover,
 .context-menu button:hover {

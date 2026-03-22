@@ -128,6 +128,8 @@ function applyLayout() {
   elements.body.classList.toggle("sidebar-collapsed", state.layout.sidebarCollapsed);
   elements.body.classList.toggle("stack-collapsed", state.layout.stackCollapsed);
   elements.body.classList.toggle("ai-collapsed", state.layout.aiCollapsed);
+  elements.toggleStackButton.classList.toggle("active", !state.layout.stackCollapsed);
+  elements.toggleAiButton.classList.toggle("active", !state.layout.aiCollapsed);
   sidebarChevron.classList.toggle("icon-chevron-left", !state.layout.sidebarCollapsed);
   sidebarChevron.classList.toggle("icon-chevron-right", state.layout.sidebarCollapsed);
   elements.toggleSidebarButton.setAttribute(
@@ -942,6 +944,20 @@ function toggleAi() {
   applyLayout();
 }
 
+function showStackPanel() {
+  if (state.layout.stackCollapsed) {
+    state.layout.stackCollapsed = false;
+    applyLayout();
+  }
+}
+
+function showAiPanel() {
+  if (state.layout.aiCollapsed) {
+    state.layout.aiCollapsed = false;
+    applyLayout();
+  }
+}
+
 function resetLayout() {
   state.layout.sidebarCollapsed = false;
   state.layout.stackCollapsed = false;
@@ -1053,8 +1069,8 @@ function bindEvents() {
   elements.commandButton.addEventListener("click", openCommandPalette);
   elements.closeCommand.addEventListener("click", closeCommandPalette);
   elements.toggleSidebarButton.addEventListener("click", toggleSidebar);
-  elements.toggleStackButton.addEventListener("click", toggleStack);
-  elements.toggleAiButton.addEventListener("click", toggleAi);
+  elements.toggleStackButton.addEventListener("click", showStackPanel);
+  elements.toggleAiButton.addEventListener("click", showAiPanel);
   elements.collapseStackInline.addEventListener("click", toggleStack);
   elements.collapseAiInline.addEventListener("click", toggleAi);
   elements.autosaveToggle.addEventListener("click", toggleAutoSave);
