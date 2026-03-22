@@ -47,6 +47,7 @@
 html,
 body {
   margin: 0;
+  height: 100%;
   min-height: 100%;
 }
 
@@ -58,6 +59,7 @@ body {
     radial-gradient(circle at bottom right, rgba(105, 226, 195, 0.15), transparent 30%),
     linear-gradient(160deg, #07101c 0%, #0f1729 44%, #080d16 100%);
   overflow: hidden;
+  min-height: 100dvh;
 }
 
 body.sidebar-collapsed .app-shell {
@@ -130,11 +132,13 @@ button {
 .app-shell {
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr);
-  min-height: 100vh;
+  height: 100dvh;
+  min-height: 100dvh;
   transition: grid-template-columns 180ms ease;
 }
 
 .sidebar {
+  min-height: 0;
   padding: 0;
   border-right: 1px solid rgba(255, 255, 255, 0.06);
   background: linear-gradient(180deg, rgba(8, 14, 27, 0.94), rgba(6, 11, 21, 0.9));
@@ -143,7 +147,8 @@ button {
 }
 
 .sidebar-scroll {
-  height: 100vh;
+  height: 100%;
+  min-height: 0;
   overflow-y: auto;
   padding: 24px 20px 28px;
 }
@@ -153,6 +158,10 @@ body.sidebar-collapsed .sidebar-scroll {
 }
 
 .workspace {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
   padding: 24px;
   overflow: hidden;
 }
@@ -445,8 +454,11 @@ kbd {
 .content-grid {
   display: grid;
   grid-template-columns: minmax(280px, 330px) minmax(0, 1fr) minmax(300px, 380px);
+  flex: 1 1 auto;
   gap: 18px;
-  min-height: calc(100vh - 108px);
+  min-height: 0;
+  height: 0;
+  align-items: stretch;
 }
 
 .content-grid > * {
