@@ -1,3 +1,10 @@
+const STORAGE_KEYS = {
+  authToken: "forgepad.authToken",
+  sidebarCollapsed: "forgepad.sidebarCollapsed",
+  stackCollapsed: "forgepad.stackCollapsed",
+  aiCollapsed: "forgepad.aiCollapsed"
+};
+
 const state = {
   notes: [],
   selectedId: null,
@@ -13,14 +20,30 @@ const state = {
   commandQuery: "",
   aiMode: "summarize",
   aiBusy: false,
+  authToken: localStorage.getItem(STORAGE_KEYS.authToken) || "",
+  appProtected: false,
+  authenticated: false,
+  contextMenuOpen: false,
   config: {
     aiConfigured: false,
     model: "",
-    provider: ""
+    provider: "",
+    storage: ""
+  },
+  layout: {
+    sidebarCollapsed: localStorage.getItem(STORAGE_KEYS.sidebarCollapsed) === "true",
+    stackCollapsed: localStorage.getItem(STORAGE_KEYS.stackCollapsed) === "true",
+    aiCollapsed: localStorage.getItem(STORAGE_KEYS.aiCollapsed) === "true"
   }
 };
 
 const elements = {
+  body: document.body,
+  authOverlay: document.querySelector("#auth-overlay"),
+  authForm: document.querySelector("#auth-form"),
+  authPassword: document.querySelector("#auth-password"),
+  authRemember: document.querySelector("#auth-remember"),
+  authError: document.querySelector("#auth-error"),
   viewList: document.querySelector("#view-list"),
   projectList: document.querySelector("#project-list"),
   tagList: document.querySelector("#tag-list"),
@@ -56,7 +79,13 @@ const elements = {
   aiResponse: document.querySelector("#ai-response"),
   aiRelated: document.querySelector("#ai-related"),
   aiModel: document.querySelector("#ai-model"),
-  modeButtons: Array.from(document.querySelectorAll(".mode-button"))
+  modeButtons: Array.from(document.querySelectorAll(".mode-button")),
+  toggleSidebarButton: document.querySelector("#toggle-sidebar-button"),
+  toggleStackButton: document.querySelector("#toggle-stack-button"),
+  toggleAiButton: document.querySelector("#toggle-ai-button"),
+  collapseStackInline: document.querySelector("#collapse-stack-inline"),
+  collapseAiInline: document.querySelector("#collapse-ai-inline"),
+  contextMenu: document.querySelector("#context-menu")
 };
 
 const smartViews = [
@@ -72,6 +101,34 @@ function escapeHtml(value) {
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;");
+}
+
+function persistLayoutState() {
+  localStorage.setItem(STORAGE_KEYS.sidebarCollapsed, String(state.layout.sidebarCollapsed));
+  localStorage.setItem(STORAGE_KEYS.stackCollapsed, String(state.layout.stackCollapsed));
+  localStorage.setItem(STORAGE_KEYS.aiCollapsed, String(state.layout.aiCollapsed));
+}
+
+function applyLayout() {
+  elements.body.classList.toggle("sidebar-collapsed", state.layout.sidebarCollapsed);
+  elements.body.classList.toggle("stack-collapsed", state.layout.stackCollapsed);
+  elements.body.classList.toggle("ai-collapsed", state.layout.aiCollapsed);
+  persistLayoutState();
+}
+
+function authHeaders() {
+  return state.authToken ? { "x-app-password": state.authToken } : {};
+}
+
+function showAuthOverlay(message = "") {
+  elements.authOverlay.classList.remove("hidden");
+  elements.authError.textContent = message;
+  elements.authPassword.focus();
+}
+
+function hideAuthOverlay() {
+  elements.authOverlay.classList.add("hidden");
+  elements.authError.textContent = "";
 }
 
 function formatDate(value) {
@@ -164,6 +221,49 @@ function ensureSelectedNote() {
   }
 }
 
+function markdownToHtml(source) {
+  const escaped = escapeHtml(source);
+  const fenced = escaped.replace(/```([\w-]*)\n([\s\S]*?)```/g, (_, language, code) => {
+    const label = language ? `<div class="meta-copy">${language}</div>` : "";
+    return `${label}<pre><code>${code.trim()}</code></pre>`;
+  });
+
+  return (
+    fenced
+      .split(/\n{2,}/)
+      .map((block) => {
+        const lines = block.split("\n");
+
+        if (block.includes("<pre><code>")) {
+          return block;
+        }
+
+        if (lines.every((line) => line.startsWith("- "))) {
+          return `<ul>${lines.map((line) => `<li>${line.slice(2)}</li>`).join("")}</ul>`;
+        }
+
+        if (lines.every((line) => /^\d+\.\s/.test(line))) {
+          return `<ol>${lines.map((line) => `<li>${line.replace(/^\d+\.\s/, "")}</li>`).join("")}</ol>`;
+        }
+
+        if (block.startsWith("### ")) {
+          return `<h3>${block.slice(4)}</h3>`;
+        }
+
+        if (block.startsWith("## ")) {
+          return `<h2>${block.slice(3)}</h2>`;
+        }
+
+        if (block.startsWith("# ")) {
+          return `<h1>${block.slice(2)}</h1>`;
+        }
+
+        return `<p>${block.replace(/\n/g, "<br />").replace(/`([^`]+)`/g, "<code>$1</code>")}</p>`;
+      })
+      .join("") || `<p class="placeholder-copy">Nothing to preview yet.</p>`
+  );
+}
+
 function renderSmartViews() {
   const counts = {
     all: state.notes.filter((note) => !note.archived).length,
@@ -175,7 +275,7 @@ function renderSmartViews() {
   elements.viewList.innerHTML = smartViews
     .map(
       (view) => `
-        <button class="view-button ${state.view === view.key ? "active" : ""}" data-view="${view.key}">
+        <button class="view-button ${state.view === view.key ? "active" : ""}" data-view="${view.key}" type="button">
           ${escapeHtml(view.label)} <span class="sidebar-count">${counts[view.key]}</span>
         </button>
       `
@@ -187,10 +287,10 @@ function renderProjects() {
   const projects = [...new Set(state.notes.map((note) => note.project).filter(Boolean))].sort();
   elements.projectCount.textContent = String(projects.length);
   elements.projectList.innerHTML = [
-    `<button class="filter-button ${state.activeProject === "all" ? "active" : ""}" data-project="all">All projects</button>`,
+    `<button class="filter-button ${state.activeProject === "all" ? "active" : ""}" data-project="all" type="button">All projects</button>`,
     ...projects.map(
       (project) =>
-        `<button class="filter-button ${state.activeProject === project ? "active" : ""}" data-project="${escapeHtml(project)}">${escapeHtml(project)}</button>`
+        `<button class="filter-button ${state.activeProject === project ? "active" : ""}" data-project="${escapeHtml(project)}" type="button">${escapeHtml(project)}</button>`
     )
   ].join("");
 }
@@ -199,10 +299,10 @@ function renderTags() {
   const tags = [...new Set(state.notes.flatMap((note) => note.tags))].sort();
   elements.tagCount.textContent = String(tags.length);
   elements.tagList.innerHTML = [
-    `<button class="tag-chip ${state.activeTag === "all" ? "active" : ""}" data-tag="all">All tags</button>`,
+    `<button class="tag-chip ${state.activeTag === "all" ? "active" : ""}" data-tag="all" type="button">All tags</button>`,
     ...tags.map(
       (tag) =>
-        `<button class="tag-chip ${state.activeTag === tag ? "active" : ""}" data-tag="${escapeHtml(tag)}">#${escapeHtml(tag)}</button>`
+        `<button class="tag-chip ${state.activeTag === tag ? "active" : ""}" data-tag="${escapeHtml(tag)}" type="button">#${escapeHtml(tag)}</button>`
     )
   ].join("");
 }
@@ -226,7 +326,7 @@ function renderNotesList() {
       ].join("");
 
       return `
-        <button class="note-card ${note.id === state.selectedId ? "active" : ""}" data-note-id="${note.id}">
+        <button class="note-card ${note.id === state.selectedId ? "active" : ""}" data-note-id="${note.id}" type="button">
           <div class="note-card-header">
             <h3>${escapeHtml(note.title)}</h3>
             <span class="mini-pill">${escapeHtml(formatDate(note.updatedAt))}</span>
@@ -237,49 +337,6 @@ function renderNotesList() {
       `;
     })
     .join("");
-}
-
-function markdownToHtml(source) {
-  const escaped = escapeHtml(source);
-  const fenced = escaped.replace(/```([\w-]*)\n([\s\S]*?)```/g, (_, language, code) => {
-    const label = language ? `<div class="meta-copy">${language}</div>` : "";
-    return `${label}<pre><code>${code.trim()}</code></pre>`;
-  });
-
-  const blocks = fenced
-    .split(/\n{2,}/)
-    .map((block) => {
-      const lines = block.split("\n");
-
-      if (block.includes("<pre><code>")) {
-        return block;
-      }
-
-      if (lines.every((line) => line.startsWith("- "))) {
-        return `<ul>${lines.map((line) => `<li>${line.slice(2)}</li>`).join("")}</ul>`;
-      }
-
-      if (lines.every((line) => /^\d+\.\s/.test(line))) {
-        return `<ol>${lines.map((line) => `<li>${line.replace(/^\d+\.\s/, "")}</li>`).join("")}</ol>`;
-      }
-
-      if (block.startsWith("### ")) {
-        return `<h3>${block.slice(4)}</h3>`;
-      }
-
-      if (block.startsWith("## ")) {
-        return `<h2>${block.slice(3)}</h2>`;
-      }
-
-      if (block.startsWith("# ")) {
-        return `<h1>${block.slice(2)}</h1>`;
-      }
-
-      return `<p>${block.replace(/\n/g, "<br />").replace(/`([^`]+)`/g, "<code>$1</code>")}</p>`;
-    })
-    .join("");
-
-  return blocks || `<p class="placeholder-copy">Nothing to preview yet.</p>`;
 }
 
 function renderEditor() {
@@ -332,7 +389,7 @@ function renderCommandPalette() {
     ? results
         .map(
           (note) => `
-            <button class="command-result" data-command-note="${note.id}">
+            <button class="command-result" data-command-note="${note.id}" type="button">
               <h3>${escapeHtml(note.title)}</h3>
               <p>${escapeHtml(toSnippet(note.content))}</p>
               <div class="meta-row">
@@ -348,14 +405,15 @@ function renderCommandPalette() {
 
 function renderAiPanel(reply, relatedNotes = []) {
   elements.aiBadge.textContent = state.config.aiConfigured ? "AI ready" : "AI disabled";
-  elements.aiBadge.classList.toggle("muted", !state.config.aiConfigured);
   elements.aiModel.textContent = state.config.model || "";
-  elements.aiResponse.innerHTML = reply ? markdownToHtml(reply) : `<p class="placeholder-copy">Pick a note and run a summary, refinement, or question against it.</p>`;
+  elements.aiResponse.innerHTML = reply
+    ? markdownToHtml(reply)
+    : `<p class="placeholder-copy">Pick a note and run a summary, refinement, or question against it.</p>`;
   elements.aiRelated.innerHTML = relatedNotes.length
     ? relatedNotes
         .map(
           (note) => `
-            <button class="note-card" data-related-id="${note.id}">
+            <button class="note-card" data-related-id="${note.id}" type="button">
               <div class="note-card-header">
                 <h3>${escapeHtml(note.title)}</h3>
               </div>
@@ -373,6 +431,7 @@ function renderAiPanel(reply, relatedNotes = []) {
 
 function renderAll() {
   ensureSelectedNote();
+  applyLayout();
   renderSmartViews();
   renderProjects();
   renderTags();
@@ -382,13 +441,30 @@ function renderAll() {
   renderAiPanel(elements.aiResponse.dataset.reply || "", JSON.parse(elements.aiRelated.dataset.related || "[]"));
 }
 
+function hideContextMenu() {
+  state.contextMenuOpen = false;
+  elements.contextMenu.classList.add("hidden");
+}
+
+function openContextMenu(x, y) {
+  state.contextMenuOpen = true;
+  elements.contextMenu.classList.remove("hidden");
+  const menuWidth = 220;
+  const menuHeight = 280;
+  const left = Math.min(x, window.innerWidth - menuWidth - 12);
+  const top = Math.min(y, window.innerHeight - menuHeight - 12);
+  elements.contextMenu.style.left = `${Math.max(12, left)}px`;
+  elements.contextMenu.style.top = `${Math.max(12, top)}px`;
+}
+
 async function requestJson(url, options = {}) {
   const response = await fetch(url, {
+    ...options,
     headers: {
       "Content-Type": "application/json",
+      ...authHeaders(),
       ...(options.headers || {})
-    },
-    ...options
+    }
   });
 
   if (response.status === 204) {
@@ -396,6 +472,13 @@ async function requestJson(url, options = {}) {
   }
 
   const payload = await response.json();
+
+  if (response.status === 401) {
+    state.authenticated = false;
+    showAuthOverlay("Wrong password. Try again.");
+    throw new Error(payload.details || payload.error || "Unauthorized.");
+  }
+
   if (!response.ok) {
     throw new Error(payload.details || payload.error || "Request failed.");
   }
@@ -403,15 +486,19 @@ async function requestJson(url, options = {}) {
   return payload;
 }
 
+async function loadConfig() {
+  const response = await fetch("/api/config", {
+    headers: authHeaders()
+  });
+  const payload = await response.json();
+  state.appProtected = payload.appProtected;
+  state.authenticated = payload.authenticated;
+  state.config = payload;
+}
+
 async function loadNotes() {
   const payload = await requestJson("/api/notes");
   state.notes = payload.notes;
-  ensureSelectedNote();
-}
-
-async function loadConfig() {
-  const payload = await requestJson("/api/config");
-  state.config = payload;
 }
 
 function replaceNote(note) {
@@ -441,9 +528,7 @@ function scheduleSave() {
   }
 
   window.clearTimeout(state.saveTimer);
-  state.saveTimer = window.setTimeout(() => {
-    saveNote(note.id);
-  }, 500);
+  state.saveTimer = window.setTimeout(() => saveNote(note.id), 500);
 }
 
 async function saveNote(noteId) {
@@ -487,6 +572,7 @@ async function createNote(seed = {}) {
     state.notes.unshift(payload.note);
     state.selectedId = payload.note.id;
     state.saveStatus = "Saved";
+    state.layout.stackCollapsed = false;
     renderAll();
     elements.noteTitle.focus();
     elements.noteTitle.select();
@@ -518,8 +604,7 @@ async function deleteSelectedNote() {
     return;
   }
 
-  const confirmed = window.confirm(`Delete "${note.title}"?`);
-  if (!confirmed) {
+  if (!window.confirm(`Delete "${note.title}"?`)) {
     return;
   }
 
@@ -555,7 +640,7 @@ function defaultPromptForMode(mode) {
   return prompts[mode] || prompts.chat;
 }
 
-async function runAi() {
+async function runAi(promptOverride) {
   const note = getSelectedNote();
   if (!note) {
     window.alert("Pick a note before running AI.");
@@ -563,11 +648,11 @@ async function runAi() {
   }
 
   if (!state.config.aiConfigured) {
-    window.alert("AI is not configured yet. Add your NVIDIA key in config.local.json or NVIDIA_API_KEY.");
+    window.alert("AI is not configured yet. Add NVIDIA_API_KEY in Cloudflare Pages.");
     return;
   }
 
-  const prompt = elements.aiPrompt.value.trim() || defaultPromptForMode(state.aiMode);
+  const prompt = promptOverride || elements.aiPrompt.value.trim() || defaultPromptForMode(state.aiMode);
   state.aiBusy = true;
   elements.askAiButton.disabled = true;
   elements.askAiButton.textContent = "Running...";
@@ -585,7 +670,9 @@ async function runAi() {
     elements.aiResponse.dataset.reply = payload.reply;
     elements.aiRelated.dataset.related = JSON.stringify(payload.relatedNotes || []);
     state.config.model = payload.model || state.config.model;
+    state.layout.aiCollapsed = false;
     renderAiPanel(payload.reply, payload.relatedNotes || []);
+    applyLayout();
   } catch (error) {
     elements.aiResponse.dataset.reply = `AI error: ${error.message}`;
     elements.aiRelated.dataset.related = "[]";
@@ -599,9 +686,8 @@ async function runAi() {
 
 function openCommandPalette() {
   state.commandOpen = true;
-  state.commandQuery = "";
   renderCommandPalette();
-  elements.commandInput.value = "";
+  elements.commandInput.value = state.commandQuery;
   elements.commandInput.focus();
 }
 
@@ -610,7 +696,106 @@ function closeCommandPalette() {
   renderCommandPalette();
 }
 
+function toggleSidebar() {
+  state.layout.sidebarCollapsed = !state.layout.sidebarCollapsed;
+  applyLayout();
+}
+
+function toggleStack() {
+  state.layout.stackCollapsed = !state.layout.stackCollapsed;
+  applyLayout();
+}
+
+function toggleAi() {
+  state.layout.aiCollapsed = !state.layout.aiCollapsed;
+  applyLayout();
+}
+
+function handleShortcut(event) {
+  const modifier = event.ctrlKey || event.metaKey;
+  if (!modifier) {
+    if (event.key === "Escape") {
+      hideContextMenu();
+      if (state.commandOpen) {
+        closeCommandPalette();
+      }
+    }
+    return;
+  }
+
+  const key = event.key.toLowerCase();
+  if (["n", "k", "s", "b", "."].includes(key)) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  if (key === "n") {
+    createNote();
+    return;
+  }
+
+  if (key === "k") {
+    openCommandPalette();
+    return;
+  }
+
+  if (key === "s") {
+    const note = getSelectedNote();
+    if (note) {
+      saveNote(note.id);
+    }
+    return;
+  }
+
+  if (key === "b") {
+    toggleSidebar();
+    return;
+  }
+
+  if (key === ".") {
+    toggleAi();
+  }
+}
+
+async function refreshProtectedData() {
+  await loadConfig();
+
+  if (state.appProtected && !state.authenticated) {
+    showAuthOverlay();
+    return;
+  }
+
+  hideAuthOverlay();
+  await loadNotes();
+  if (!state.selectedId && state.notes[0]) {
+    state.selectedId = state.notes[0].id;
+  }
+  renderAll();
+}
+
 function bindEvents() {
+  elements.authForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const password = elements.authPassword.value.trim();
+    state.authToken = password;
+
+    try {
+      await refreshProtectedData();
+      if (!state.authenticated) {
+        throw new Error("Wrong password.");
+      }
+
+      if (elements.authRemember.checked) {
+        localStorage.setItem(STORAGE_KEYS.authToken, password);
+      } else {
+        localStorage.removeItem(STORAGE_KEYS.authToken);
+      }
+      elements.authPassword.value = "";
+    } catch (error) {
+      showAuthOverlay(error.message);
+    }
+  });
+
   elements.searchInput.addEventListener("input", (event) => {
     state.query = event.target.value;
     renderAll();
@@ -629,6 +814,11 @@ function bindEvents() {
   elements.newNoteButton.addEventListener("click", () => createNote());
   elements.commandButton.addEventListener("click", openCommandPalette);
   elements.closeCommand.addEventListener("click", closeCommandPalette);
+  elements.toggleSidebarButton.addEventListener("click", toggleSidebar);
+  elements.toggleStackButton.addEventListener("click", toggleStack);
+  elements.toggleAiButton.addEventListener("click", toggleAi);
+  elements.collapseStackInline.addEventListener("click", toggleStack);
+  elements.collapseAiInline.addEventListener("click", toggleAi);
 
   elements.commandInput.addEventListener("input", (event) => {
     state.commandQuery = event.target.value;
@@ -730,61 +920,69 @@ function bindEvents() {
     }
   });
   elements.deleteButton.addEventListener("click", deleteSelectedNote);
-  elements.askAiButton.addEventListener("click", runAi);
+  elements.askAiButton.addEventListener("click", () => runAi());
 
   for (const button of elements.modeButtons) {
     button.addEventListener("click", () => {
       state.aiMode = button.dataset.mode;
-      if (!elements.aiPrompt.value.trim()) {
-        elements.aiPrompt.value = defaultPromptForMode(state.aiMode);
-      }
+      elements.aiPrompt.value = defaultPromptForMode(state.aiMode);
       renderAiPanel(elements.aiResponse.dataset.reply || "", JSON.parse(elements.aiRelated.dataset.related || "[]"));
     });
   }
 
-  document.addEventListener("keydown", (event) => {
-    const modifier = event.ctrlKey || event.metaKey;
-
-    if (modifier && event.key.toLowerCase() === "k") {
-      event.preventDefault();
-      openCommandPalette();
+  elements.contextMenu.addEventListener("click", async (event) => {
+    const button = event.target.closest("[data-context-action]");
+    if (!button) {
       return;
     }
 
-    if (modifier && event.key.toLowerCase() === "n") {
-      event.preventDefault();
-      createNote();
-      return;
-    }
+    const action = button.dataset.contextAction;
+    hideContextMenu();
 
-    if (modifier && event.key.toLowerCase() === "s") {
-      event.preventDefault();
-      const note = getSelectedNote();
-      if (note) {
-        saveNote(note.id);
-      }
-      return;
-    }
-
-    if (event.key === "Escape" && state.commandOpen) {
-      closeCommandPalette();
+    if (action === "new-note") {
+      await createNote();
+    } else if (action === "duplicate-note") {
+      await duplicateSelectedNote();
+    } else if (action === "toggle-pin") {
+      await toggleFlag("pinned");
+    } else if (action === "toggle-archive") {
+      await toggleFlag("archived");
+    } else if (action === "toggle-stack") {
+      toggleStack();
+    } else if (action === "toggle-ai") {
+      toggleAi();
+    } else if (action === "summarize-note") {
+      state.aiMode = "summarize";
+      elements.aiPrompt.value = defaultPromptForMode("summarize");
+      await runAi(defaultPromptForMode("summarize"));
     }
   });
+
+  window.addEventListener("keydown", handleShortcut, { capture: true });
+  window.addEventListener(
+    "contextmenu",
+    (event) => {
+      event.preventDefault();
+      openContextMenu(event.clientX, event.clientY);
+    },
+    { capture: true }
+  );
+  window.addEventListener("click", () => hideContextMenu(), { capture: true });
+  window.addEventListener("scroll", hideContextMenu, { capture: true });
+  window.addEventListener("resize", hideContextMenu);
 }
 
 async function init() {
+  bindEvents();
+  elements.aiPrompt.value = defaultPromptForMode(state.aiMode);
+  elements.aiResponse.dataset.reply = "";
+  elements.aiRelated.dataset.related = "[]";
+  applyLayout();
+
   try {
-    await Promise.all([loadConfig(), loadNotes()]);
-    if (!state.selectedId && state.notes[0]) {
-      state.selectedId = state.notes[0].id;
-    }
-    elements.aiPrompt.value = defaultPromptForMode(state.aiMode);
-    elements.aiResponse.dataset.reply = "";
-    elements.aiRelated.dataset.related = "[]";
-    bindEvents();
-    renderAll();
+    await refreshProtectedData();
   } catch (error) {
-    document.body.innerHTML = `<main class="panel" style="margin:24px"><h1>Failed to load ForgePad</h1><p>${escapeHtml(error.message)}</p></main>`;
+    document.body.innerHTML = `<main class="panel"><h1>Failed to load ForgePad</h1><p>${escapeHtml(error.message)}</p></main>`;
   }
 }
 

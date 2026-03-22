@@ -1,67 +1,40 @@
 # ForgePad
 
-ForgePad is a local, developer-oriented notes app built for fast retrieval, cleaner structure, and AI help without pushing your notes into a browser-only toy setup.
+ForgePad is a developer-first notes app designed for Cloudflare Pages. It gives you a searchable writing workspace, collapsible side panels, a custom right-click menu, aggressive browser shortcut handling, and an NVIDIA-backed AI copilot.
 
-## What it does
+## Stack
 
-* Full-text search across title, content, tags, language and project
-* Smart views for pinned, recent and archived notes
-* Metadata fields that make notes easier to organize later
-* Markdown editing with a live preview mode
-* Quick-jump palette with `Ctrl+K`
-* Local JSON-backed note storage in `data/notes.json`
-* NVIDIA Builder integration through a server-side proxy so your browser never sees the API key
+- Frontend: plain HTML, CSS and browser JavaScript
+- Hosting: Cloudflare Pages
+- Backend: Cloudflare Pages Functions
+- Storage: Cloudflare KV
+- AI: NVIDIA Builder via `https://integrate.api.nvidia.com/v1/chat/completions`
 
-## Run it
+## Features
 
-From `D:\\Projects\\NOTES\_APP`:
+- Full-text search across title, body, tags, language and project
+- Pinned, recent and archived smart views
+- Collapsible workspace sidebar, note stack and AI panel
+- Markdown editing with preview
+- Quick jump palette with `Ctrl+K`
+- Shortcut interception for `Ctrl+N`, `Ctrl+S`, `Ctrl+B`, `Ctrl+.`
+- Custom right-click menu
+- Personal-use password gate via `APP_PASSWORD`
 
-```powershell
-node server.js
-```
+## Cloudflare deploy
 
-Then open [http://localhost:3210](http://localhost:3210).
+Cloudflare-specific setup is documented in [docs/cloudflare-pages.md](D:/Projects/NOTES_APP/docs/cloudflare-pages.md).
 
-## NVIDIA setup
+## Important bindings and secrets
 
-Do not paste your key into the frontend.
+- `NOTES_KV`: KV namespace binding used to persist notes
+- `APP_PASSWORD`: required secret for private access
+- `NVIDIA_API_KEY`: required secret for AI
+- `NVIDIA_MODEL`: optional environment variable, defaults to `qwen/qwen3-coder-480b-a35b-instruct`
 
-Use either:
+## Repo layout
 
-1. A local config file
-
-Copy `config.example.json` to `config.local.json`, then fill in your key.
-
-2. An environment variable
-
-```powershell
-$env:NVIDIA\_API\_KEY="your-key-here"
-node server.js
-```
-
-Optional model override:
-
-```powershell
-$env:NVIDIA\_MODEL="qwen/qwen3-coder-480b-a35b-instruct"
-node server.js
-```
-
-The app uses NVIDIA's OpenAI-compatible chat completions endpoint:
-
-`https://integrate.api.nvidia.com/v1/chat/completions`
-
-## Files
-
-* `server.js`: static server, notes API and NVIDIA proxy
-* `public/index.html`: app shell
-* `public/styles.css`: UI styling
-* `public/app.js`: client logic
-* `data/seed-notes.json`: starter notes copied on first launch
-* `data/notes.json`: live local note storage, generated automatically
-
-## Notes
-
-* `config.local.json` is ignored by `.gitignore`
-* `data/notes.json` is also ignored so your personal notes do not get committed by mistake
-* Restart the server after changing the NVIDIA config
-
+- `public/`: static app assets and Pages headers
+- `functions/`: Cloudflare Pages Functions API routes
+- `data/seed-notes.json`: reference seed data
+- `.gitignore`: excludes local secrets and generated note files

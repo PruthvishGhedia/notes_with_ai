@@ -1,4 +1,5 @@
 config.local.json
 data/notes.json
 node_modules/
-
+.dev.vars*
+.env*
