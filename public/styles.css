@@ -476,6 +476,20 @@ kbd {
   overflow: hidden;
 }
 
+.assistant-panel .panel-header,
+.assistant-panel .assistant-mode-grid,
+.assistant-panel .field,
+.assistant-panel .primary-button,
+.assistant-panel .output-heading {
+  flex: 0 0 auto;
+}
+
+.assistant-panel .assistant-output {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
 .panel-header {
   display: flex;
   justify-content: space-between;
@@ -667,6 +681,11 @@ kbd {
   flex: 1 1 0;
   height: 0;
   overflow-y: scroll;
+}
+
+.related-list {
+  max-height: 180px;
+  overflow-y: auto;
 }
 
 .status-text {

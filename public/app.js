@@ -79,6 +79,7 @@ const elements = {
   commandResults: document.querySelector("#command-results"),
   closeCommand: document.querySelector("#close-command"),
   aiBadge: document.querySelector("#ai-badge"),
+  aiNoteSelect: document.querySelector("#ai-note-select"),
   aiPrompt: document.querySelector("#ai-prompt"),
   askAiButton: document.querySelector("#ask-ai-button"),
   aiResponse: document.querySelector("#ai-response"),
@@ -447,6 +448,18 @@ function renderCommandPalette() {
 }
 
 function renderAiPanel(reply, relatedNotes = []) {
+  const currentAiTarget = state.notes.some((note) => note.id === elements.aiNoteSelect.value)
+    ? elements.aiNoteSelect.value
+    : state.selectedId;
+
+  elements.aiNoteSelect.innerHTML = state.notes
+    .filter((note) => !note.archived)
+    .map(
+      (note) =>
+        `<option value="${note.id}" ${note.id === currentAiTarget ? "selected" : ""}>${escapeHtml(note.title)}${note.project ? ` · ${escapeHtml(note.project)}` : ""}</option>`
+    )
+    .join("");
+
   elements.aiBadge.textContent = state.config.aiConfigured ? "AI ready" : "AI disabled";
   elements.aiModel.textContent = state.config.model || "";
   elements.aiResponse.innerHTML = reply
@@ -801,7 +814,8 @@ function defaultPromptForMode(mode) {
 }
 
 async function runAi(promptOverride) {
-  const note = getSelectedNote();
+  const noteId = elements.aiNoteSelect.value || state.selectedId;
+  const note = state.notes.find((entry) => entry.id === noteId) || null;
   if (!note) {
     await alertModal("Pick a note before running AI.", "No note selected", "AI");
     return;
@@ -821,7 +835,7 @@ async function runAi(promptOverride) {
     const payload = await requestJson("/api/ai/chat", {
       method: "POST",
       body: JSON.stringify({
-        noteId: note.id,
+        noteId,
         mode: state.aiMode,
         prompt
       })
@@ -1044,6 +1058,9 @@ function bindEvents() {
   elements.collapseStackInline.addEventListener("click", toggleStack);
   elements.collapseAiInline.addEventListener("click", toggleAi);
   elements.autosaveToggle.addEventListener("click", toggleAutoSave);
+  elements.aiNoteSelect.addEventListener("change", () => {
+    elements.aiPrompt.value = defaultPromptForMode(state.aiMode);
+  });
   elements.downloadTxtButton.addEventListener("click", exportSelectedNoteAsText);
   elements.downloadMdButton.addEventListener("click", exportSelectedNoteAsMarkdown);
   elements.modalCancel.addEventListener("click", () => closeModal(false));
