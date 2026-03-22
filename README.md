@@ -17,7 +17,7 @@ ForgePad is a developer-first notes app designed for Cloudflare Pages. It gives 
 - Collapsible workspace sidebar, note stack and AI panel
 - Markdown editing with preview
 - Quick jump palette with `Ctrl+K`
-- Shortcut interception for `Ctrl+N`, `Ctrl+S`, `Ctrl+B`, `Ctrl+.`
+- Shortcut interception for `Ctrl+\``, `Ctrl+S`, `Ctrl+B`, `Ctrl+.`
 - Custom right-click menu
 - Personal-use password gate via `APP_PASSWORD`
 

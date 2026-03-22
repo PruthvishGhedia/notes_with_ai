@@ -29,58 +29,60 @@
 
     <div class="app-shell">
       <aside class="sidebar">
-        <div class="brand">
-          <div class="brand-mark">FP</div>
-          <div class="brand-copy">
-            <p class="eyebrow">Developer Notes</p>
-            <h1>ForgePad</h1>
+        <div class="sidebar-scroll">
+          <div class="brand">
+            <div class="brand-mark">FP</div>
+            <div class="brand-copy">
+              <p class="eyebrow">Developer Notes</p>
+              <h1>ForgePad</h1>
+            </div>
           </div>
+
+          <button id="new-note-button" class="primary-button icon-primary-button" type="button" aria-label="Create note" title="Create note">
+            <span class="button-icon" aria-hidden="true">+</span>
+            <span class="button-label">New note</span>
+          </button>
+
+          <section class="sidebar-section">
+            <div class="sidebar-heading">
+              <p class="sidebar-label">Workspace</p>
+              <button
+                id="toggle-sidebar-button"
+                class="mini-control icon-toggle"
+                type="button"
+                aria-label="Collapse workspace sidebar"
+                title="Collapse workspace sidebar"
+              >
+                <span class="icon-chevron icon-chevron-left" aria-hidden="true"></span>
+              </button>
+            </div>
+            <div id="view-list" class="view-list"></div>
+          </section>
+
+          <section class="sidebar-section">
+            <div class="sidebar-heading">
+              <p class="sidebar-label">Projects</p>
+              <span id="project-count" class="sidebar-count">0</span>
+            </div>
+            <div id="project-list" class="filter-list"></div>
+          </section>
+
+          <section class="sidebar-section">
+            <div class="sidebar-heading">
+              <p class="sidebar-label">Tags</p>
+              <span id="tag-count" class="sidebar-count">0</span>
+            </div>
+            <div id="tag-list" class="tag-grid"></div>
+          </section>
+
+          <section class="sidebar-section sidebar-tip">
+            <p class="sidebar-label">Shortcuts</p>
+            <p><kbd>Ctrl</kbd> + <kbd>K</kbd> quick jump</p>
+            <p><kbd>Ctrl</kbd> + <kbd>`</kbd> new note</p>
+            <p><kbd>Ctrl</kbd> + <kbd>B</kbd> toggle workspace</p>
+            <p><kbd>Ctrl</kbd> + <kbd>.</kbd> toggle AI</p>
+          </section>
         </div>
-
-        <button id="new-note-button" class="primary-button icon-primary-button" type="button" aria-label="Create note" title="Create note">
-          <span class="button-icon" aria-hidden="true">+</span>
-          <span class="button-label">New note</span>
-        </button>
-
-        <section class="sidebar-section">
-          <div class="sidebar-heading">
-            <p class="sidebar-label">Workspace</p>
-            <button
-              id="toggle-sidebar-button"
-              class="mini-control icon-toggle"
-              type="button"
-              aria-label="Collapse workspace sidebar"
-              title="Collapse workspace sidebar"
-            >
-              <span class="icon-chevron icon-chevron-left" aria-hidden="true"></span>
-            </button>
-          </div>
-          <div id="view-list" class="view-list"></div>
-        </section>
-
-        <section class="sidebar-section">
-          <div class="sidebar-heading">
-            <p class="sidebar-label">Projects</p>
-            <span id="project-count" class="sidebar-count">0</span>
-          </div>
-          <div id="project-list" class="filter-list"></div>
-        </section>
-
-        <section class="sidebar-section">
-          <div class="sidebar-heading">
-            <p class="sidebar-label">Tags</p>
-            <span id="tag-count" class="sidebar-count">0</span>
-          </div>
-          <div id="tag-list" class="tag-grid"></div>
-        </section>
-
-        <section class="sidebar-section sidebar-tip">
-          <p class="sidebar-label">Shortcuts</p>
-          <p><kbd>Ctrl</kbd> + <kbd>K</kbd> quick jump</p>
-          <p><kbd>Ctrl</kbd> + <kbd>N</kbd> new note</p>
-          <p><kbd>Ctrl</kbd> + <kbd>B</kbd> toggle workspace</p>
-          <p><kbd>Ctrl</kbd> + <kbd>.</kbd> toggle AI</p>
-        </section>
       </aside>
 
       <main class="workspace">

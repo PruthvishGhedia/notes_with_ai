@@ -751,12 +751,12 @@ function handleShortcut(event) {
   }
 
   const key = event.key.toLowerCase();
-  if (["n", "k", "s", "b", "."].includes(key)) {
+  if (["`", "k", "s", "b", "."].includes(key)) {
     event.preventDefault();
     event.stopPropagation();
   }
 
-  if (key === "n") {
+  if (key === "`") {
     createNote();
     return;
   }
