@@ -1,0 +1,11 @@
+{
+  "name": "forgepad-notes",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A developer-focused local notes app with NVIDIA AI integration.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  }
+}
+

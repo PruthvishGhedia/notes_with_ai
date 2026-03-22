@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ForgePad</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">FP</div>
+          <div>
+            <p class="eyebrow">Developer Notes</p>
+            <h1>ForgePad</h1>
+          </div>
+        </div>
+
+        <button id="new-note-button" class="primary-button">New note</button>
+
+        <section class="sidebar-section">
+          <p class="sidebar-label">Smart Views</p>
+          <div id="view-list" class="view-list"></div>
+        </section>
+
+        <section class="sidebar-section">
+          <div class="sidebar-heading">
+            <p class="sidebar-label">Projects</p>
+            <span id="project-count" class="sidebar-count">0</span>
+          </div>
+          <div id="project-list" class="filter-list"></div>
+        </section>
+
+        <section class="sidebar-section">
+          <div class="sidebar-heading">
+            <p class="sidebar-label">Tags</p>
+            <span id="tag-count" class="sidebar-count">0</span>
+          </div>
+          <div id="tag-list" class="tag-grid"></div>
+        </section>
+
+        <section class="sidebar-section sidebar-tip">
+          <p class="sidebar-label">Shortcuts</p>
+          <p><kbd>Ctrl</kbd> + <kbd>K</kbd> quick jump</p>
+          <p><kbd>Ctrl</kbd> + <kbd>N</kbd> new note</p>
+          <p><kbd>Ctrl</kbd> + <kbd>S</kbd> save now</p>
+        </section>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div class="search-wrap">
+            <input
+              id="search-input"
+              class="search-input"
+              type="search"
+              placeholder="Search across titles, tags, projects and note text"
+            />
+            <button id="command-button" class="ghost-button">Jump</button>
+          </div>
+
+          <div class="topbar-actions">
+            <select id="sort-select" class="select-input">
+              <option value="updated">Sort: Recently updated</option>
+              <option value="created">Sort: Recently created</option>
+              <option value="title">Sort: Title</option>
+            </select>
+            <button id="preview-toggle" class="ghost-button">Preview</button>
+          </div>
+        </header>
+
+        <div class="content-grid">
+          <section class="notes-panel panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Library</p>
+                <h2>Note stack</h2>
+              </div>
+              <span id="visible-count" class="pill">0 notes</span>
+            </div>
+            <div id="notes-list" class="notes-list"></div>
+          </section>
+
+          <section class="editor-panel panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Editor</p>
+                <h2 id="editor-heading">Untitled note</h2>
+              </div>
+              <span id="save-status" class="status-text">Idle</span>
+            </div>
+
+            <div class="editor-meta-grid">
+              <label class="field">
+                <span>Title</span>
+                <input id="note-title" type="text" />
+              </label>
+              <label class="field">
+                <span>Project</span>
+                <input id="note-project" type="text" placeholder="Personal, Backend, Docs" />
+              </label>
+              <label class="field">
+                <span>Language</span>
+                <input id="note-language" type="text" placeholder="markdown, ts, bash" />
+              </label>
+              <label class="field">
+                <span>Tags</span>
+                <input id="note-tags" type="text" placeholder="comma,separated,tags" />
+              </label>
+            </div>
+
+            <div class="editor-toolbar">
+              <div class="toolbar-group">
+                <button id="pin-button" class="ghost-button">Pin</button>
+                <button id="archive-button" class="ghost-button">Archive</button>
+                <button id="duplicate-button" class="ghost-button">Duplicate</button>
+              </div>
+              <div class="toolbar-group">
+                <button id="save-button" class="ghost-button">Save</button>
+                <button id="delete-button" class="danger-button">Delete</button>
+              </div>
+            </div>
+
+            <div class="editor-body">
+              <textarea id="note-content" spellcheck="false"></textarea>
+              <article id="preview-pane" class="preview-pane hidden"></article>
+            </div>
+          </section>
+
+          <aside class="assistant-panel panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">AI</p>
+                <h2>NVIDIA workspace copilot</h2>
+              </div>
+              <span id="ai-badge" class="pill muted">Checking</span>
+            </div>
+
+            <div class="assistant-mode-grid">
+              <button class="mode-button" data-mode="summarize">Summarize</button>
+              <button class="mode-button" data-mode="todos">Extract todos</button>
+              <button class="mode-button" data-mode="refine">Refine note</button>
+              <button class="mode-button" data-mode="chat">Ask freely</button>
+            </div>
+
+            <label class="field field-stretch">
+              <span>Prompt</span>
+              <textarea
+                id="ai-prompt"
+                class="assistant-input"
+                placeholder="Ask about the current note, request a cleaner rewrite, or turn scratch thoughts into action items."
+              ></textarea>
+            </label>
+
+            <button id="ask-ai-button" class="primary-button">Run AI</button>
+
+            <section class="assistant-output">
+              <div class="output-heading">
+                <span>Response</span>
+                <span id="ai-model" class="output-model"></span>
+              </div>
+              <div id="ai-response" class="response-box">
+                <p class="placeholder-copy">Pick a note and run a summary, refinement, or question against it.</p>
+              </div>
+            </section>
+
+            <section class="assistant-output">
+              <div class="output-heading">
+                <span>Related notes used for context</span>
+              </div>
+              <div id="ai-related" class="related-list"></div>
+            </section>
+          </aside>
+        </div>
+      </main>
+    </div>
+
+    <div id="command-palette" class="command-palette hidden">
+      <div class="command-card">
+        <div class="command-header">
+          <p class="eyebrow">Quick Jump</p>
+          <button id="close-command" class="ghost-button">Close</button>
+        </div>
+        <input
+          id="command-input"
+          class="search-input"
+          type="search"
+          placeholder="Type a note title, tag, or project"
+        />
+        <div id="command-results" class="command-results"></div>
+      </div>
+    </div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
