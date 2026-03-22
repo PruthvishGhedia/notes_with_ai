@@ -110,9 +110,36 @@ function persistLayoutState() {
 }
 
 function applyLayout() {
+  const sidebarChevron = elements.toggleSidebarButton.querySelector(".icon-chevron");
   elements.body.classList.toggle("sidebar-collapsed", state.layout.sidebarCollapsed);
   elements.body.classList.toggle("stack-collapsed", state.layout.stackCollapsed);
   elements.body.classList.toggle("ai-collapsed", state.layout.aiCollapsed);
+  sidebarChevron.classList.toggle("icon-chevron-left", !state.layout.sidebarCollapsed);
+  sidebarChevron.classList.toggle("icon-chevron-right", state.layout.sidebarCollapsed);
+  elements.toggleSidebarButton.setAttribute(
+    "aria-label",
+    state.layout.sidebarCollapsed ? "Expand workspace sidebar" : "Collapse workspace sidebar"
+  );
+  elements.toggleSidebarButton.setAttribute(
+    "title",
+    state.layout.sidebarCollapsed ? "Expand workspace sidebar" : "Collapse workspace sidebar"
+  );
+  elements.collapseStackInline.setAttribute(
+    "aria-label",
+    state.layout.stackCollapsed ? "Show note stack" : "Hide note stack"
+  );
+  elements.collapseStackInline.setAttribute(
+    "title",
+    state.layout.stackCollapsed ? "Show note stack" : "Hide note stack"
+  );
+  elements.collapseAiInline.setAttribute(
+    "aria-label",
+    state.layout.aiCollapsed ? "Show AI panel" : "Hide AI panel"
+  );
+  elements.collapseAiInline.setAttribute(
+    "title",
+    state.layout.aiCollapsed ? "Show AI panel" : "Hide AI panel"
+  );
   persistLayoutState();
 }
 

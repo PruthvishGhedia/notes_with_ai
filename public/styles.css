@@ -59,6 +59,9 @@ body.ai-collapsed .assistant-panel {
 
 body.sidebar-collapsed .brand-copy,
 body.sidebar-collapsed .sidebar-section:not(:first-of-type),
+body.sidebar-collapsed .view-list,
+body.sidebar-collapsed .filter-list,
+body.sidebar-collapsed .tag-grid,
 body.sidebar-collapsed .sidebar-tip,
 body.sidebar-collapsed .sidebar-heading .sidebar-count,
 body.sidebar-collapsed .sidebar-label {
@@ -66,8 +69,23 @@ body.sidebar-collapsed .sidebar-label {
 }
 
 body.sidebar-collapsed #new-note-button {
-  padding-inline: 0;
-  min-height: 48px;
+  width: 52px;
+  min-height: 52px;
+  padding: 0;
+  margin-inline: auto;
+  border-radius: 18px;
+}
+
+body.sidebar-collapsed #new-note-button .button-label {
+  display: none;
+}
+
+body.sidebar-collapsed .sidebar-heading {
+  justify-content: center;
+}
+
+body.sidebar-collapsed .sidebar {
+  padding-inline: 18px;
 }
 
 button,
@@ -180,6 +198,27 @@ button {
   box-shadow: 0 10px 26px rgba(94, 184, 255, 0.22);
 }
 
+.icon-primary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.button-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.button-label {
+  display: inline-block;
+}
+
 .ghost-button,
 .danger-button,
 .mode-button,
@@ -210,6 +249,34 @@ button {
   white-space: nowrap;
 }
 
+.icon-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  flex: 0 0 auto;
+}
+
+.icon-chevron {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  border-top: 2px solid currentColor;
+  border-right: 2px solid currentColor;
+}
+
+.icon-chevron-left {
+  transform: rotate(225deg);
+  margin-left: 4px;
+}
+
+.icon-chevron-right {
+  transform: rotate(45deg);
+  margin-right: 4px;
+}
+
 .danger-button {
   color: #ffd6d6;
   border-color: rgba(255, 138, 138, 0.24);
@@ -217,6 +284,7 @@ button {
 
 .sidebar-section {
   margin-top: 22px;
+  min-width: 0;
 }
 
 .sidebar-heading,

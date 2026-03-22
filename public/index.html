@@ -37,12 +37,23 @@
           </div>
         </div>
 
-        <button id="new-note-button" class="primary-button">New note</button>
+        <button id="new-note-button" class="primary-button icon-primary-button" type="button" aria-label="Create note" title="Create note">
+          <span class="button-icon" aria-hidden="true">+</span>
+          <span class="button-label">New note</span>
+        </button>
 
         <section class="sidebar-section">
           <div class="sidebar-heading">
             <p class="sidebar-label">Workspace</p>
-            <button id="toggle-sidebar-button" class="mini-control" type="button">Collapse</button>
+            <button
+              id="toggle-sidebar-button"
+              class="mini-control icon-toggle"
+              type="button"
+              aria-label="Collapse workspace sidebar"
+              title="Collapse workspace sidebar"
+            >
+              <span class="icon-chevron icon-chevron-left" aria-hidden="true"></span>
+            </button>
           </div>
           <div id="view-list" class="view-list"></div>
         </section>
@@ -75,8 +86,8 @@
       <main class="workspace">
         <header class="topbar">
           <div class="topbar-left">
-            <button id="toggle-stack-button" class="ghost-button compact-button" type="button">Stack</button>
-            <button id="toggle-ai-button" class="ghost-button compact-button" type="button">AI</button>
+            <button id="toggle-stack-button" class="ghost-button compact-button" type="button" title="Toggle note stack">Stack</button>
+            <button id="toggle-ai-button" class="ghost-button compact-button" type="button" title="Toggle AI panel">AI</button>
             <div class="search-wrap">
               <input
                 id="search-input"
@@ -107,7 +118,15 @@
               </div>
               <div class="panel-header-actions">
                 <span id="visible-count" class="pill">0 notes</span>
-                <button id="collapse-stack-inline" class="mini-control" type="button">Hide</button>
+                <button
+                  id="collapse-stack-inline"
+                  class="mini-control icon-toggle"
+                  type="button"
+                  aria-label="Hide note stack"
+                  title="Hide note stack"
+                >
+                  <span class="icon-chevron icon-chevron-left" aria-hidden="true"></span>
+                </button>
               </div>
             </div>
             <div id="notes-list" class="notes-list"></div>
@@ -167,7 +186,15 @@
               </div>
               <div class="panel-header-actions">
                 <span id="ai-badge" class="pill muted">Checking</span>
-                <button id="collapse-ai-inline" class="mini-control" type="button">Hide</button>
+                <button
+                  id="collapse-ai-inline"
+                  class="mini-control icon-toggle"
+                  type="button"
+                  aria-label="Hide AI panel"
+                  title="Hide AI panel"
+                >
+                  <span class="icon-chevron icon-chevron-right" aria-hidden="true"></span>
+                </button>
               </div>
             </div>
 
