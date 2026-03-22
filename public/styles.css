@@ -472,6 +472,10 @@ kbd {
   overflow: hidden;
 }
 
+.assistant-panel {
+  overflow: hidden;
+}
+
 .panel-header {
   display: flex;
   justify-content: space-between;
@@ -660,6 +664,9 @@ kbd {
 
 .response-box {
   min-height: 220px;
+  flex: 1 1 0;
+  height: 0;
+  overflow-y: scroll;
 }
 
 .status-text {
