@@ -67,6 +67,8 @@ const elements = {
   pinButton: document.querySelector("#pin-button"),
   archiveButton: document.querySelector("#archive-button"),
   duplicateButton: document.querySelector("#duplicate-button"),
+  downloadTxtButton: document.querySelector("#download-txt-button"),
+  downloadMdButton: document.querySelector("#download-md-button"),
   autosaveToggle: document.querySelector("#autosave-toggle"),
   saveButton: document.querySelector("#save-button"),
   deleteButton: document.querySelector("#delete-button"),
@@ -88,7 +90,13 @@ const elements = {
   toggleAiButton: document.querySelector("#toggle-ai-button"),
   collapseStackInline: document.querySelector("#collapse-stack-inline"),
   collapseAiInline: document.querySelector("#collapse-ai-inline"),
-  contextMenu: document.querySelector("#context-menu")
+  contextMenu: document.querySelector("#context-menu"),
+  modalOverlay: document.querySelector("#modal-overlay"),
+  modalEyebrow: document.querySelector("#modal-eyebrow"),
+  modalTitle: document.querySelector("#modal-title"),
+  modalMessage: document.querySelector("#modal-message"),
+  modalCancel: document.querySelector("#modal-cancel"),
+  modalConfirm: document.querySelector("#modal-confirm")
 };
 
 const smartViews = [
@@ -97,6 +105,8 @@ const smartViews = [
   { key: "recent", label: "Recent" },
   { key: "archived", label: "Archived" }
 ];
+
+let activeModalResolver = null;
 
 function escapeHtml(value) {
   return String(value)
@@ -479,6 +489,108 @@ function hideContextMenu() {
   elements.contextMenu.classList.add("hidden");
 }
 
+function sanitizeFilenamePart(value) {
+  return String(value || "")
+    .trim()
+    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, "-")
+    .replace(/\s+/g, " ")
+    .slice(0, 80);
+}
+
+function buildExportFilename(note, extension) {
+  const title = sanitizeFilenamePart(note.title || "untitled-note");
+  const project = sanitizeFilenamePart(note.project || "no-project");
+  return `${title} - ${project}.${extension}`;
+}
+
+function triggerDownload(filename, content, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
+function buildTextExport(note) {
+  const header = [
+    `Title: ${note.title}`,
+    `Project: ${note.project || "None"}`,
+    `Language: ${note.language || "text"}`,
+    `Tags: ${note.tags.join(", ") || "None"}`,
+    `Pinned: ${note.pinned ? "Yes" : "No"}`,
+    `Archived: ${note.archived ? "Yes" : "No"}`,
+    `Created: ${note.createdAt || ""}`,
+    `Updated: ${note.updatedAt || ""}`
+  ].join("\n");
+
+  return `${header}\n\n---\n\n${note.content || ""}\n`;
+}
+
+function cleanMarkdownExport(content) {
+  const trimmed = String(content || "").trim();
+  const fencedMatch = trimmed.match(/^```(?:markdown|md)?\s*\n([\s\S]*?)\n```$/i);
+  return fencedMatch ? fencedMatch[1].trim() : trimmed;
+}
+
+function openModal({
+  eyebrow = "Notice",
+  title = "ForgePad",
+  message = "",
+  confirmLabel = "OK",
+  cancelLabel = "Cancel",
+  tone = "default",
+  showCancel = true
+}) {
+  return new Promise((resolve) => {
+    activeModalResolver = resolve;
+    elements.modalEyebrow.textContent = eyebrow;
+    elements.modalTitle.textContent = title;
+    elements.modalMessage.textContent = message;
+    elements.modalConfirm.textContent = confirmLabel;
+    elements.modalCancel.textContent = cancelLabel;
+    elements.modalCancel.classList.toggle("hidden", !showCancel);
+    elements.modalConfirm.classList.toggle("danger-button", tone === "danger");
+    elements.modalConfirm.classList.toggle("primary-button", tone !== "danger");
+    elements.modalConfirm.classList.toggle("modal-confirm", true);
+    elements.modalOverlay.classList.remove("hidden");
+    elements.modalConfirm.focus();
+  });
+}
+
+function closeModal(result) {
+  elements.modalOverlay.classList.add("hidden");
+  if (activeModalResolver) {
+    activeModalResolver(result);
+    activeModalResolver = null;
+  }
+}
+
+function alertModal(message, title = "ForgePad", eyebrow = "Notice") {
+  return openModal({
+    eyebrow,
+    title,
+    message,
+    confirmLabel: "OK",
+    showCancel: false
+  });
+}
+
+function confirmModal(message, title = "Confirm", eyebrow = "Action") {
+  return openModal({
+    eyebrow,
+    title,
+    message,
+    confirmLabel: "Confirm",
+    cancelLabel: "Cancel",
+    tone: "danger",
+    showCancel: true
+  });
+}
+
 function openContextMenu(x, y) {
   state.contextMenuOpen = true;
   elements.contextMenu.classList.remove("hidden");
@@ -596,7 +708,7 @@ async function saveNote(noteId) {
     state.saveStatus = "Saved";
   } catch (error) {
     state.saveStatus = "Save failed";
-    window.alert(error.message);
+    await alertModal(error.message, "Save failed", "Editor");
   }
 
   renderAll();
@@ -624,7 +736,7 @@ async function createNote(seed = {}) {
     elements.noteTitle.focus();
     elements.noteTitle.select();
   } catch (error) {
-    window.alert(error.message);
+    await alertModal(error.message, "Create note failed", "Editor");
   }
 }
 
@@ -651,7 +763,8 @@ async function deleteSelectedNote() {
     return;
   }
 
-  if (!window.confirm(`Delete "${note.title}"?`)) {
+  const confirmed = await confirmModal(`Delete "${note.title}"?`, "Delete note", "Danger");
+  if (!confirmed) {
     return;
   }
 
@@ -662,7 +775,7 @@ async function deleteSelectedNote() {
     state.saveStatus = "Deleted";
     renderAll();
   } catch (error) {
-    window.alert(error.message);
+    await alertModal(error.message, "Delete failed", "Danger");
   }
 }
 
@@ -690,12 +803,12 @@ function defaultPromptForMode(mode) {
 async function runAi(promptOverride) {
   const note = getSelectedNote();
   if (!note) {
-    window.alert("Pick a note before running AI.");
+    await alertModal("Pick a note before running AI.", "No note selected", "AI");
     return;
   }
 
   if (!state.config.aiConfigured) {
-    window.alert("AI is not configured yet. Add NVIDIA_API_KEY in Cloudflare Pages.");
+    await alertModal("AI is not configured yet. Add NVIDIA_API_KEY in Cloudflare Pages.", "AI unavailable", "AI");
     return;
   }
 
@@ -728,6 +841,63 @@ async function runAi(promptOverride) {
     state.aiBusy = false;
     elements.askAiButton.disabled = false;
     elements.askAiButton.textContent = "Run AI";
+  }
+}
+
+async function exportSelectedNoteAsText() {
+  const note = getSelectedNote();
+  if (!note) {
+    await alertModal("Pick a note before exporting.", "No note selected", "Export");
+    return;
+  }
+
+  triggerDownload(
+    buildExportFilename(note, "txt"),
+    buildTextExport(note),
+    "text/plain;charset=utf-8"
+  );
+}
+
+async function exportSelectedNoteAsMarkdown() {
+  const note = getSelectedNote();
+  if (!note) {
+    await alertModal("Pick a note before exporting.", "No note selected", "Export");
+    return;
+  }
+
+  if (!state.config.aiConfigured) {
+    await alertModal(
+      "Markdown export uses AI formatting. Add NVIDIA_API_KEY in Cloudflare Pages first.",
+      "AI unavailable",
+      "Export"
+    );
+    return;
+  }
+
+  elements.downloadMdButton.disabled = true;
+  elements.downloadMdButton.textContent = "Formatting...";
+
+  try {
+    const payload = await requestJson("/api/ai/chat", {
+      method: "POST",
+      body: JSON.stringify({
+        noteId: note.id,
+        mode: "refine",
+        prompt:
+          "Convert this note into clean markdown only. Preserve meaning, keep all important content, improve headings, bullets, code fences and spacing, and return only markdown with no commentary."
+      })
+    });
+
+    triggerDownload(
+      buildExportFilename(note, "md"),
+      cleanMarkdownExport(payload.reply),
+      "text/markdown;charset=utf-8"
+    );
+  } catch (error) {
+    await alertModal(error.message, "Markdown export failed", "Export");
+  } finally {
+    elements.downloadMdButton.disabled = false;
+    elements.downloadMdButton.textContent = "Download MD";
   }
 }
 
@@ -874,6 +1044,15 @@ function bindEvents() {
   elements.collapseStackInline.addEventListener("click", toggleStack);
   elements.collapseAiInline.addEventListener("click", toggleAi);
   elements.autosaveToggle.addEventListener("click", toggleAutoSave);
+  elements.downloadTxtButton.addEventListener("click", exportSelectedNoteAsText);
+  elements.downloadMdButton.addEventListener("click", exportSelectedNoteAsMarkdown);
+  elements.modalCancel.addEventListener("click", () => closeModal(false));
+  elements.modalConfirm.addEventListener("click", () => closeModal(true));
+  elements.modalOverlay.addEventListener("click", (event) => {
+    if (event.target === elements.modalOverlay) {
+      closeModal(false);
+    }
+  });
 
   elements.commandInput.addEventListener("input", (event) => {
     state.commandQuery = event.target.value;
@@ -998,6 +1177,10 @@ function bindEvents() {
       await createNote();
     } else if (action === "duplicate-note") {
       await duplicateSelectedNote();
+    } else if (action === "download-txt") {
+      await exportSelectedNoteAsText();
+    } else if (action === "download-md") {
+      await exportSelectedNoteAsMarkdown();
     } else if (action === "toggle-pin") {
       await toggleFlag("pinned");
     } else if (action === "toggle-archive") {

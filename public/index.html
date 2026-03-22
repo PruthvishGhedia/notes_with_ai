@@ -167,6 +167,8 @@
                 <button id="pin-button" class="ghost-button" type="button">Pin</button>
                 <button id="archive-button" class="ghost-button" type="button">Archive</button>
                 <button id="duplicate-button" class="ghost-button" type="button">Duplicate</button>
+                <button id="download-txt-button" class="ghost-button" type="button">Download TXT</button>
+                <button id="download-md-button" class="ghost-button" type="button">Download MD</button>
               </div>
               <div class="toolbar-group">
                 <button id="autosave-toggle" class="ghost-button" type="button">Autosave Off</button>
@@ -259,12 +261,26 @@
     <div id="context-menu" class="context-menu hidden">
       <button data-context-action="new-note" type="button">New note</button>
       <button data-context-action="duplicate-note" type="button">Duplicate note</button>
+      <button data-context-action="download-txt" type="button">Download TXT</button>
+      <button data-context-action="download-md" type="button">Download MD</button>
       <button data-context-action="toggle-pin" type="button">Pin or unpin</button>
       <button data-context-action="toggle-archive" type="button">Archive or restore</button>
       <button data-context-action="toggle-stack" type="button">Toggle note stack</button>
       <button data-context-action="toggle-ai" type="button">Toggle AI panel</button>
       <button data-context-action="reset-layout" type="button">Reset layout</button>
       <button data-context-action="summarize-note" type="button">Summarize with AI</button>
+    </div>
+
+    <div id="modal-overlay" class="modal-overlay hidden">
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <p id="modal-eyebrow" class="eyebrow">Notice</p>
+        <h2 id="modal-title">ForgePad</h2>
+        <p id="modal-message" class="modal-message"></p>
+        <div class="modal-actions">
+          <button id="modal-cancel" class="ghost-button" type="button">Cancel</button>
+          <button id="modal-confirm" class="primary-button modal-confirm" type="button">OK</button>
+        </div>
+      </div>
     </div>
 
     <script src="/app.js"></script>
