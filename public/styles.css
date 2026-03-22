@@ -464,6 +464,10 @@ kbd {
   backdrop-filter: blur(22px);
 }
 
+.notes-panel {
+  overflow: hidden;
+}
+
 .editor-panel {
   overflow: hidden;
 }
@@ -484,6 +488,9 @@ kbd {
 }
 
 .notes-list {
+  flex: 1 1 0;
+  height: 0;
+  min-height: 0;
   padding-right: 4px;
   overflow-y: scroll;
 }
