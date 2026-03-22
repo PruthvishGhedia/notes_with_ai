@@ -2,7 +2,8 @@ const STORAGE_KEYS = {
   authToken: "forgepad.authToken",
   sidebarCollapsed: "forgepad.sidebarCollapsed",
   stackCollapsed: "forgepad.stackCollapsed",
-  aiCollapsed: "forgepad.aiCollapsed"
+  aiCollapsed: "forgepad.aiCollapsed",
+  autoSave: "forgepad.autoSave"
 };
 
 const state = {
@@ -20,6 +21,7 @@ const state = {
   commandQuery: "",
   aiMode: "summarize",
   aiBusy: false,
+  autoSave: localStorage.getItem(STORAGE_KEYS.autoSave) === "true",
   authToken: localStorage.getItem(STORAGE_KEYS.authToken) || "",
   appProtected: false,
   authenticated: false,
@@ -65,6 +67,7 @@ const elements = {
   pinButton: document.querySelector("#pin-button"),
   archiveButton: document.querySelector("#archive-button"),
   duplicateButton: document.querySelector("#duplicate-button"),
+  autosaveToggle: document.querySelector("#autosave-toggle"),
   saveButton: document.querySelector("#save-button"),
   deleteButton: document.querySelector("#delete-button"),
   newNoteButton: document.querySelector("#new-note-button"),
@@ -394,6 +397,9 @@ function renderEditor() {
     elements.archiveButton.textContent = note.archived ? "Restore" : "Archive";
   }
 
+  elements.autosaveToggle.textContent = state.autoSave ? "Autosave On" : "Autosave Off";
+  elements.autosaveToggle.setAttribute("aria-pressed", state.autoSave ? "true" : "false");
+
   elements.noteContent.classList.toggle("hidden", state.preview);
   elements.previewPane.classList.toggle("hidden", !state.preview);
   elements.previewToggle.textContent = state.preview ? "Edit" : "Preview";
@@ -550,12 +556,26 @@ function updateLocalNote(patch) {
 
 function scheduleSave() {
   const note = getSelectedNote();
-  if (!note) {
+  if (!note || !state.autoSave) {
     return;
   }
 
   window.clearTimeout(state.saveTimer);
   state.saveTimer = window.setTimeout(() => saveNote(note.id), 500);
+}
+
+function toggleAutoSave() {
+  state.autoSave = !state.autoSave;
+  localStorage.setItem(STORAGE_KEYS.autoSave, String(state.autoSave));
+
+  if (!state.autoSave) {
+    window.clearTimeout(state.saveTimer);
+    state.saveStatus = "Autosave off";
+  } else {
+    state.saveStatus = "Autosave on";
+  }
+
+  renderEditor();
 }
 
 async function saveNote(noteId) {
@@ -738,6 +758,13 @@ function toggleAi() {
   applyLayout();
 }
 
+function resetLayout() {
+  state.layout.sidebarCollapsed = false;
+  state.layout.stackCollapsed = false;
+  state.layout.aiCollapsed = false;
+  applyLayout();
+}
+
 function handleShortcut(event) {
   const modifier = event.ctrlKey || event.metaKey;
   if (!modifier) {
@@ -846,6 +873,7 @@ function bindEvents() {
   elements.toggleAiButton.addEventListener("click", toggleAi);
   elements.collapseStackInline.addEventListener("click", toggleStack);
   elements.collapseAiInline.addEventListener("click", toggleAi);
+  elements.autosaveToggle.addEventListener("click", toggleAutoSave);
 
   elements.commandInput.addEventListener("input", (event) => {
     state.commandQuery = event.target.value;
@@ -978,6 +1006,8 @@ function bindEvents() {
       toggleStack();
     } else if (action === "toggle-ai") {
       toggleAi();
+    } else if (action === "reset-layout") {
+      resetLayout();
     } else if (action === "summarize-note") {
       state.aiMode = "summarize";
       elements.aiPrompt.value = defaultPromptForMode("summarize");

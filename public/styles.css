@@ -448,6 +448,10 @@ kbd {
   min-height: calc(100vh - 108px);
 }
 
+.content-grid > * {
+  min-width: 0;
+}
+
 .panel {
   display: flex;
   flex-direction: column;
@@ -608,6 +612,18 @@ kbd {
 
 .preview-pane {
   overflow-y: auto;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.preview-pane p,
+.preview-pane li,
+.response-box p,
+.response-box li,
+.note-card p,
+.command-result p {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .preview-pane pre,
